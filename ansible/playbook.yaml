@@ -1,0 +1,162 @@
+- name: testing
+  hosts: myhosts
+  become: yes
+  tasks:
+    - name: Ping that bitch
+      ansible.builtin.ping:
+    - name: apt update
+      ansible.builtin.apt:
+        update_cache: yes
+# Docker installation
+  tasks:
+    - name: Install dependencies
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+        update_cache: yes
+
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Install Docker
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose
+          - docker-compose-plugin
+        state: present
+
+    - name: Start and enable Docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ubuntu to docker group
+      ansible.builtin.user:
+        name: ubuntu
+        groups: docker
+        append: yes
+        
+#DuckDNS setup
+#    - name: Echo check
+#      ansible.builtin.shell:
+#        cmd: echo "DuckDNS setup starting..." > /home/ubuntu/duckcheck
+#      when: inventory_hostname == groups['myhosts'][0]
+#
+#    - name: Create DuckDNS directory
+#      ansible.builtin.file:
+#        path: /opt/duckdns
+#        state: directory
+#        mode: '0755'
+#      when: inventory_hostname == groups['myhosts'][0]
+#
+#    - name: Create DuckDNS script
+#      ansible.builtin.copy:
+#        dest: /opt/duckdns/duck.sh
+#        content: |
+#          #!/bin/bash
+#          curl -s "https://www.duckdns.org/update?domains={{ duckdns_domain }}&token={{ duckdns_token }}&ip=" -o /opt/duckdns/duck.log
+#        mode: '0755'
+#      when: inventory_hostname == groups['myhosts'][0]
+#
+#    - name: Run DuckDNS script
+#      ansible.builtin.shell:
+#        cmd: /opt/duckdns/duck.sh
+#      when: inventory_hostname == groups['myhosts'][0]
+#
+#    - name: Add DuckDNS cron job
+#      ansible.builtin.cron:
+#        name: "duckdns update"
+#        minute: "*/1"
+#        job: "/opt/duckdns/duck.sh"
+#      when: inventory_hostname == groups['myhosts'][0]
+
+#Install makefile
+
+    - name: Installer make
+      apt:
+        name: make
+        state: present
+        update_cache: yes
+
+#Docker 
+#Copy files and .env
+
+    - name: Copy app files
+      ansible.builtin.copy:
+        src: files/
+        dest: /home/ubuntu/app/
+        owner: ubuntu
+        group: ubuntu
+
+    - name: Generate .env
+      ansible.builtin.template:
+        src: templates/.env.j2
+        dest: /home/ubuntu/app/inception/srcs/.env
+        mode: '0666'
+
+    - name: Launch makefile
+      ansible.builtin.shell:
+        cmd: make
+        chdir: /home/ubuntu/app/inception
+      register: result
+      retries: 3
+      delay: 30
+      until: result.rc == 0
+
+# Nginx test docker
+#    - name: Create app directory
+#      ansible.builtin.file:
+#        path: /opt/app
+#        state: directory
+#        owner: ubuntu
+#        group: ubuntu
+#
+#    - name: Create docker-compose.yml
+#      ansible.builtin.copy:
+#        dest: /opt/app/docker-compose.yml
+#        content: |
+#          services:
+#            web:
+#              image: nginx:alpine
+#              ports:
+#                - "80:80"
+#              restart: always
+#
+#    - name: Start container
+#      community.docker.docker_compose_v2:
+#        project_src: /opt/app
+#        state: present
+# Nginx a la main
+#    - name: install nginx
+#      ansible.builtin.apt:
+#        name: nginx
+#        state: present
+#    - name: start nginx
+#      ansible.builtin.service:
+#        name: nginx
+#        state: started
+#        enabled: yes
+#    - name: create index.html
+#      ansible.builtin.copy:
+#        src: files/index.html
+#        dest: /var/www/html/index.html
+#    - name: change privilages index
+#      ansible.builtin.file:
+#        path: /var/www/html/index.html
+#        mode: '0644'
+      

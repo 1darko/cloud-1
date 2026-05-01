@@ -1,0 +1,9 @@
+./ansible/files/.env
+notes.txt
+ansible/.vault_pass
+
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+.terraform*
